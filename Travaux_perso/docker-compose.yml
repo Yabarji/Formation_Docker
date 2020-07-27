@@ -1,0 +1,99 @@
+version: '3.2'
+
+services:
+        liferay:
+                image: esystemstech/liferay:7.0.3-ga4
+                container_name: liferay
+                restart: always
+                environment:
+                        - "DB_HOST=mysql"
+                        - "DB_SCHEMA=lportal"
+                        - "DB_USER="
+                        - "DB_PASSWORD="
+                        - "ELASTICSEARCH_CLUSTER_NAME=docker-cluster"
+                        - "ELASTICSEARCH_HOST=elasticsearch"
+                        - "ELASTICSEARCH_PORT=9300"
+                        - "LIBREOFFICE_HOST=libreoffice"
+                        - "LIBREOFFICE_PORT=8100"
+                ports:
+                        - "8080:8080"
+                        - "11311:11311"
+                networks:
+                        - "external"
+                        - "services-only"
+                networks:
+                        - external
+                        - services-only
+                volumes:
+                        - "./etc:/opt/liferay/etc"
+                        - "./data:/opt/liferay/home/data"
+                        - "./deploy:/opt/liferay/home/deploy"
+                        - "/opt/liferay/home/logs"
+                        - "/var/log/tomcat8"
+                        - "/opt/liferay/home"
+                        - "/var/cache/tomcat8"
+                        - "/var/lib/tomcat8/temp"
+                tmpfs: /tmp:exec
+                sysctls:
+                       - net.ipv6.conf.all.disable_ipv6=1
+                       - net.ipv6.conf.default.disable_ipv6=1
+
+                depends_on:
+                        - "mysql"
+                        - "elasticsearch"
+                        - "libreoffice"          
+                       
+        elasticsearch:
+                image: esystemstech/elasticsearch:master
+                container_name: elasticsearch
+                restart: always
+                networks:
+                        - "services-only"
+                ulimits:
+                        memlock:
+                                soft: -1
+                                hard: -1
+                        nofile:
+                                soft: 65536
+                                hard: 65536
+                cap_add:
+                        - IPC_LOCK
+                expose:
+                        - "9200"
+                        - "9300"
+
+        libreoffice:
+                image: esystemstech/libreoffice:master
+                container_name: libreoffice
+                restart: always
+                networks:
+                        - "services-only"
+                expose:
+                        - "8100"
+
+        mysql:
+                image: mysql:5.7
+                container_name: mysql
+                restart: always
+                command: ["mysqld", "--character-set-server=utf8", "--collation-server=utf8_general_ci", "--default-time-zone=+00:00","--explicit_defaults_for_timestamp"]
+                networks:
+                        - "services-only"
+                expose:
+                        - "3306"
+                environment:
+                        - "MYSQL_ROOT_PASSWORD="
+                        - "MYSQL_DATABASE=lportal"
+                        - "MYSQL_USER=lradmin"
+                        - "MYSQL_PASSWORD="
+                volumes:
+                        - "mysql-data:/var/lib/mysql"     
+
+volumes:
+       mysql-data:
+
+networks:
+    services-only:
+        internal: true
+    external:
+        internal: false
+

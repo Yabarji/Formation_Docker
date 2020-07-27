@@ -1,0 +1,55 @@
+version: '2.4'
+
+services:
+  app_web:
+    image: nginx:1.18
+    volumes:
+      - ./conf/:/etc/nginx/conf.d/:ro # Mappage volume avec option ro (read-only) dans le conteneur
+      - ./www/:/usr/share/nginx/html/
+    ports:
+      - 8085:80
+    networks:
+      - frontweb
+    depends_on:
+      - app_php
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  app_php:
+    image: php-mysql:1.0 
+    volumes:
+      - ./www/:/srv/http/
+    networks:
+      - frontweb
+      - backweb
+    depends_on:
+      - app_bdd
+    cpus: 0.5
+    mem_limit: 256m
+
+  app_bdd:
+    image: mariadb:10.4
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootoor44
+    networks:
+      backweb:
+        ipv4_address: 172.16.128.20
+    mem_limit: 512m
+
+networks:
+  frontweb:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.9.0/24
+  backweb:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.128.0/24
